@@ -55,9 +55,12 @@ static void findWhisperPaths() {
     std::wstring dir(exePath);
     dir = dir.substr(0, dir.find_last_of(L'\\') + 1);
 
-    // Look for whisper-cli.exe relative to the exe
-    // In dev: build/Release/wisper-agent.exe → ../../bin/Release/whisper-cli.exe
-    g_whisperExe = dir + L"..\\..\\bin\\Release\\whisper-cli.exe";
+    // Try release layout: whisper-cli.exe next to wisper-agent.exe
+    g_whisperExe = dir + L"whisper-cli.exe";
+    if (GetFileAttributesW(g_whisperExe.c_str()) == INVALID_FILE_ATTRIBUTES) {
+        // Try dev layout: build/Release/wisper-agent.exe → ../../bin/Release/whisper-cli.exe
+        g_whisperExe = dir + L"..\\..\\bin\\Release\\whisper-cli.exe";
+    }
 
     // Model path from model manager
     g_modelPath = model::getModelPath();

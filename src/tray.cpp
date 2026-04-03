@@ -9,13 +9,19 @@ static HICON g_iconRecording = nullptr;
 static HICON g_iconTranscribing = nullptr;
 
 static HICON loadIconFromFile(const wchar_t* filename) {
-    wchar_t path[MAX_PATH];
-    GetModuleFileNameW(nullptr, path, MAX_PATH);
-    // Navigate to assets/icons/ relative to exe
-    wchar_t* lastSlash = wcsrchr(path, L'\\');
+    wchar_t exeDir[MAX_PATH];
+    GetModuleFileNameW(nullptr, exeDir, MAX_PATH);
+    wchar_t* lastSlash = wcsrchr(exeDir, L'\\');
     if (lastSlash) *(lastSlash + 1) = L'\0';
-    wcscat_s(path, L"..\\..\\assets\\icons\\");
-    wcscat_s(path, filename);
+
+    // Try release layout: <exe>/assets/icons/
+    wchar_t path[MAX_PATH];
+    swprintf_s(path, L"%sassets\\icons\\%s", exeDir, filename);
+    HICON icon = (HICON)LoadImageW(nullptr, path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+    if (icon) return icon;
+
+    // Try dev layout: <exe>/../../assets/icons/
+    swprintf_s(path, L"%s..\\..\\assets\\icons\\%s", exeDir, filename);
     return (HICON)LoadImageW(nullptr, path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
 }
 
