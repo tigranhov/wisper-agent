@@ -1,5 +1,6 @@
 build/
-bin/Release/
+bin/
+release/
 *.exe
 *.obj
 *.pdb
@@ -8,5 +9,6 @@ bin/Release/
 CMakeUserPresets.json
 .vs/
 .vscode/
+.claude/settings.local.json
 .DS_Store
 Thumbs.db
