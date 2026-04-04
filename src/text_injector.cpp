@@ -4,6 +4,8 @@
 
 namespace injector {
 
+static std::string g_savedClipboard;
+
 static void sendCtrlV() {
     INPUT inputs[4] = {};
 
@@ -32,16 +34,15 @@ void injectText(const std::string& text) {
     if (text.empty()) return;
 
     // Save current clipboard text
-    std::string originalText;
+    g_savedClipboard.clear();
     if (OpenClipboard(nullptr)) {
         HANDLE hData = GetClipboardData(CF_UNICODETEXT);
         if (hData) {
             wchar_t* pText = (wchar_t*)GlobalLock(hData);
             if (pText) {
-                // Convert to narrow for storage (we only restore text)
                 int len = WideCharToMultiByte(CP_UTF8, 0, pText, -1, nullptr, 0, nullptr, nullptr);
-                originalText.resize(len - 1);
-                WideCharToMultiByte(CP_UTF8, 0, pText, -1, originalText.data(), len, nullptr, nullptr);
+                g_savedClipboard.resize(len - 1);
+                WideCharToMultiByte(CP_UTF8, 0, pText, -1, g_savedClipboard.data(), len, nullptr, nullptr);
                 GlobalUnlock(hData);
             }
         }
@@ -68,23 +69,23 @@ void injectText(const std::string& text) {
 
     Sleep(50); // Let clipboard settle
     sendCtrlV();
-    Sleep(500); // Wait for paste to complete
+}
 
-    // Restore original clipboard
-    {
-        int wideLen = MultiByteToWideChar(CP_UTF8, 0, originalText.c_str(), -1, nullptr, 0);
-        HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, wideLen * sizeof(wchar_t));
-        wchar_t* pMem = (wchar_t*)GlobalLock(hMem);
-        MultiByteToWideChar(CP_UTF8, 0, originalText.c_str(), -1, pMem, wideLen);
-        GlobalUnlock(hMem);
+void restoreClipboard() {
+    Sleep(200); // Give target app time to read clipboard
 
-        if (OpenClipboard(nullptr)) {
-            EmptyClipboard();
-            SetClipboardData(CF_UNICODETEXT, hMem);
-            CloseClipboard();
-        } else {
-            GlobalFree(hMem);
-        }
+    int wideLen = MultiByteToWideChar(CP_UTF8, 0, g_savedClipboard.c_str(), -1, nullptr, 0);
+    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, wideLen * sizeof(wchar_t));
+    wchar_t* pMem = (wchar_t*)GlobalLock(hMem);
+    MultiByteToWideChar(CP_UTF8, 0, g_savedClipboard.c_str(), -1, pMem, wideLen);
+    GlobalUnlock(hMem);
+
+    if (OpenClipboard(nullptr)) {
+        EmptyClipboard();
+        SetClipboardData(CF_UNICODETEXT, hMem);
+        CloseClipboard();
+    } else {
+        GlobalFree(hMem);
     }
 }
 

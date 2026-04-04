@@ -81,7 +81,11 @@ std::string transcribe(const std::wstring& wavPath, const std::wstring& whisperE
     std::string output = readPipe(stdoutRead);
     CloseHandle(stdoutRead);
 
-    WaitForSingleObject(pi.hProcess, 30000); // 30s timeout
+    DWORD waitResult = WaitForSingleObject(pi.hProcess, 30000);
+    if (waitResult == WAIT_TIMEOUT) {
+        TerminateProcess(pi.hProcess, 1);
+        WaitForSingleObject(pi.hProcess, 5000);
+    }
 
     DWORD exitCode = 1;
     GetExitCodeProcess(pi.hProcess, &exitCode);

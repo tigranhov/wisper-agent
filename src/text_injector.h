@@ -3,11 +3,10 @@
 
 namespace injector {
 
-// Inject text into the currently focused input:
-// 1. Save clipboard
-// 2. Set clipboard to text
-// 3. SendInput Ctrl+V
-// 4. Restore clipboard
+// Save clipboard, set to text, send Ctrl+V. Returns after paste is sent.
 void injectText(const std::string& text);
+
+// Restore clipboard to what it was before injectText. Call after a delay.
+void restoreClipboard();
 
 }

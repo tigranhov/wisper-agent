@@ -102,7 +102,7 @@ static void onComboUp() {
         log("Recording discarded (%lldms < %dms)", duration, MIN_RECORDING_MS);
         g_state = AppState::Idle;
         tray::setState(tray::State::Idle);
-    overlay::setState(overlay::State::Idle);
+        overlay::setState(overlay::State::Idle);
         return;
     }
 
@@ -113,7 +113,7 @@ static void onComboUp() {
         log("No audio data captured");
         g_state = AppState::Idle;
         tray::setState(tray::State::Idle);
-    overlay::setState(overlay::State::Idle);
+        overlay::setState(overlay::State::Idle);
         return;
     }
 
@@ -151,7 +151,11 @@ static void onComboUp() {
         // Inject text (must happen on this thread since SendInput is thread-agnostic)
         injector::injectText(text);
 
+        // Return to Idle immediately so user can record again
         PostMessage(hwnd, WM_TRANSCRIPTION_DONE, 0, 0);
+
+        // Restore clipboard after target app has read it
+        injector::restoreClipboard();
     }).detach();
 }
 
@@ -168,7 +172,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         case WM_TRANSCRIPTION_DONE:
             g_state = AppState::Idle;
             tray::setState(tray::State::Idle);
-    overlay::setState(overlay::State::Idle);
+            overlay::setState(overlay::State::Idle);
             return 0;
 
         case tray::WM_TRAY_ICON:
