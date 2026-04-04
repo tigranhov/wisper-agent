@@ -1,6 +1,6 @@
 [Setup]
 AppName=Wisper Agent
-AppVersion=0.1.0
+AppVersion=0.1.2
 AppPublisher=tigranhov
 AppPublisherURL=https://github.com/tigranhov/wisper-agent
 DefaultDirName={autopf}\Wisper Agent
