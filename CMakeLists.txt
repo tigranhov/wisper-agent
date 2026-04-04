@@ -13,6 +13,7 @@ add_executable(wisper-agent WIN32
   src/tray.cpp
   src/overlay.cpp
   src/model_manager.cpp
+  src/settings.cpp
 )
 
 target_link_libraries(wisper-agent PRIVATE

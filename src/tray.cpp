@@ -56,6 +56,10 @@ void setState(State state) {
             g_nid.hIcon = g_iconIdle;
             wcscpy_s(g_nid.szTip, L"Wisper Agent \u2014 Ready (Ctrl+`)");
             break;
+        case State::Initializing:
+            g_nid.hIcon = g_iconIdle;
+            wcscpy_s(g_nid.szTip, L"Wisper Agent \u2014 Initializing...");
+            break;
         case State::Recording:
             g_nid.hIcon = g_iconRecording;
             wcscpy_s(g_nid.szTip, L"Wisper Agent \u2014 Recording...");
@@ -94,6 +98,8 @@ void showContextMenu(HWND hwnd, const std::vector<AudioDevice>& devices, int sel
     AppendMenuW(hMenu, MF_STRING | MF_GRAYED, 0, L"Wisper Agent");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(hMenu, MF_POPUP, (UINT_PTR)hMicMenu, L"Microphone");
+    AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(hMenu, MF_STRING, IDM_SETTINGS, L"Settings...");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(hMenu, MF_STRING, IDM_QUIT, L"Quit");
 

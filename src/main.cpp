@@ -12,15 +12,20 @@
 #include "text_injector.h"
 #include "model_manager.h"
 #include "overlay.h"
+#include "settings.h"
 
 // App state
-enum class AppState { Idle, Recording, Transcribing };
-static AppState g_state = AppState::Idle;
+enum class AppState { Initializing, Idle, Recording, Transcribing };
+static AppState g_state = AppState::Initializing;
 static HWND g_hwnd = nullptr;
+static HINSTANCE g_hInstance = nullptr;
 static std::chrono::steady_clock::time_point g_recordStartTime;
 static std::vector<tray::AudioDevice> g_devices;
 static int g_selectedDeviceIndex = -1; // -1 = default
 static constexpr int MIN_RECORDING_MS = 500;
+
+// Repeat-press mode
+static settings::RepeatPressMode g_repeatMode = settings::RepeatPressMode::Queue;
 
 // Custom messages for async operations
 constexpr UINT WM_TRANSCRIPTION_DONE = WM_APP + 20;
@@ -69,8 +74,41 @@ static void findWhisperPaths() {
     log("Model path: %ls", g_modelPath.c_str());
 }
 
+static void saveCurrentSettings() {
+    settings::Settings cfg;
+    cfg.repeatPressMode = g_repeatMode;
+    cfg.selectedMicIndex = g_selectedDeviceIndex;
+    settings::save(cfg);
+}
+
 static void onComboDown() {
-    if (g_state != AppState::Idle) return;
+    // Suppress during initialization
+    if (g_state == AppState::Initializing) {
+        overlay::setState(overlay::State::Initializing);
+        return;
+    }
+
+    // Suppress while settings dialog is open
+    if (settings::isDialogOpen()) return;
+
+    // Handle repeat press during transcription
+    if (g_state == AppState::Transcribing) {
+        switch (g_repeatMode) {
+            case settings::RepeatPressMode::Flash:
+                overlay::flash();
+                return;
+            case settings::RepeatPressMode::Cancel:
+                transcriber::cancelCurrent();
+                // fall through to start recording immediately
+                break;
+            case settings::RepeatPressMode::Queue:
+                // fall through to start recording immediately
+                break;
+        }
+        // Queue and Cancel: start recording now, old transcription continues in background
+    } else if (g_state != AppState::Idle) {
+        return;
+    }
 
     std::wstring deviceId = L"";
     if (g_selectedDeviceIndex >= 0 && g_selectedDeviceIndex < (int)g_devices.size()) {
@@ -124,6 +162,9 @@ static void onComboUp() {
     // Run transcription on background thread
     HWND hwnd = g_hwnd;
     std::thread([result = std::move(result), hwnd]() {
+        // Reset cancel flag at start of transcription
+        transcriber::resetCancelFlag();
+
         // Write WAV
         auto wavPath = wav::writeTemp(result.samples, result.sampleRate, result.channels);
         if (wavPath.empty()) {
@@ -140,8 +181,9 @@ static void onComboUp() {
         // Delete temp file
         DeleteFileW(wavPath.c_str());
 
-        if (text.empty()) {
-            log("Empty transcription");
+        // Check for cancellation before injecting text
+        if (text.empty() || transcriber::isCancelRequested()) {
+            if (!text.empty()) log("Transcription cancelled, discarding text");
             PostMessage(hwnd, WM_TRANSCRIPTION_DONE, 0, 0);
             return;
         }
@@ -170,6 +212,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             return 0;
 
         case WM_TRANSCRIPTION_DONE:
+            // If already recording a new one (Queue/Cancel started it during
+            // old transcription), don't reset — old transcription already
+            // injected its text from the background thread.
+            if (g_state == AppState::Recording) return 0;
             g_state = AppState::Idle;
             tray::setState(tray::State::Idle);
             overlay::setState(overlay::State::Idle);
@@ -185,10 +231,20 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             UINT id = LOWORD(wParam);
             if (id == tray::IDM_QUIT) {
                 PostQuitMessage(0);
+            } else if (id == tray::IDM_SETTINGS) {
+                settings::Settings cfg;
+                cfg.repeatPressMode = g_repeatMode;
+                cfg.selectedMicIndex = g_selectedDeviceIndex;
+                if (settings::showSettingsDialog(g_hInstance, cfg)) {
+                    g_repeatMode = cfg.repeatPressMode;
+                    g_selectedDeviceIndex = cfg.selectedMicIndex;
+                    saveCurrentSettings();
+                }
             } else if (id >= tray::IDM_MIC_BASE && id < tray::IDM_MIC_BASE + 100) {
                 g_selectedDeviceIndex = id - tray::IDM_MIC_BASE;
                 log("Selected mic: %ls", g_devices[g_selectedDeviceIndex].name.c_str());
                 tray::showBalloon(L"Microphone", g_devices[g_selectedDeviceIndex].name.c_str());
+                saveCurrentSettings();
             }
             return 0;
         }
@@ -210,6 +266,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
 
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
+    g_hInstance = hInstance;
+
     // Register window class
     WNDCLASSEXW wc = {};
     wc.cbSize = sizeof(wc);
@@ -225,8 +283,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
     findWhisperPaths();
     refreshDevices();
 
+    // Load settings
+    settings::Settings cfg = settings::load();
+    g_selectedDeviceIndex = cfg.selectedMicIndex;
+    g_repeatMode = cfg.repeatPressMode;
+
     tray::create(g_hwnd);
     overlay::create(hInstance);
+
+    // Start hotkey early so it's responsive during model download
+    keyboard::start(g_hwnd);
+    tray::setState(tray::State::Initializing);
 
     // Check and download model if needed
     if (!model::modelExists()) {
@@ -249,7 +316,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
         }
     }
 
-    keyboard::start(g_hwnd);
+    // Initialization complete
+    g_state = AppState::Idle;
+    tray::setState(tray::State::Idle);
+    overlay::setState(overlay::State::Idle);
+    tray::showBalloon(L"Wisper Agent", L"Ready \u2014 press Ctrl+` to dictate");
 
     log("Wisper Agent is running. Hold Ctrl+` to record.");
 

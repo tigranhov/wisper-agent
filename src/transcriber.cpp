@@ -3,8 +3,16 @@
 #include <vector>
 #include <algorithm>
 #include <regex>
+#include <mutex>
 
 namespace transcriber {
+
+static HANDLE g_currentProcess = nullptr;
+static std::mutex g_processMutex;
+static std::atomic<bool> g_cancelRequested{false};
+
+bool isCancelRequested() { return g_cancelRequested; }
+void resetCancelFlag() { g_cancelRequested = false; }
 
 static std::string readPipe(HANDLE pipe) {
     std::string output;
@@ -21,7 +29,7 @@ static std::string cleanOutput(const std::string& text) {
     std::string cleaned = text;
 
     // Remove common whisper artifacts
-    std::vector<std::regex> patterns = {
+    static const std::vector<std::regex> patterns = {
         std::regex(R"(\[BLANK_AUDIO\])", std::regex::icase),
         std::regex(R"(\(blank audio\))", std::regex::icase),
         std::regex(R"(\[silence\])", std::regex::icase),
@@ -78,6 +86,11 @@ std::string transcribe(const std::wstring& wavPath, const std::wstring& whisperE
 
     CloseHandle(stdoutWrite); // Close write end in parent
 
+    {
+        std::lock_guard<std::mutex> lock(g_processMutex);
+        g_currentProcess = pi.hProcess;
+    }
+
     std::string output = readPipe(stdoutRead);
     CloseHandle(stdoutRead);
 
@@ -90,12 +103,25 @@ std::string transcribe(const std::wstring& wavPath, const std::wstring& whisperE
     DWORD exitCode = 1;
     GetExitCodeProcess(pi.hProcess, &exitCode);
 
+    {
+        std::lock_guard<std::mutex> lock(g_processMutex);
+        g_currentProcess = nullptr;
+    }
+
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
 
     if (exitCode != 0) return "";
 
     return cleanOutput(output);
+}
+
+void cancelCurrent() {
+    g_cancelRequested = true;
+    std::lock_guard<std::mutex> lock(g_processMutex);
+    if (g_currentProcess) {
+        TerminateProcess(g_currentProcess, 1);
+    }
 }
 
 }

@@ -11,10 +11,12 @@ constexpr UINT ID_TRAY_ICON = 1;
 // Context menu IDs
 constexpr UINT IDM_QUIT = 1000;
 constexpr UINT IDM_AUTOSTART = 1001;
+constexpr UINT IDM_SETTINGS = 1002;
 constexpr UINT IDM_MIC_BASE = 2000; // mic devices start at 2000
 
 enum class State {
     Idle,
+    Initializing,
     Recording,
     Transcribing,
 };

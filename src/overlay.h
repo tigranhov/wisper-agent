@@ -5,6 +5,7 @@ namespace overlay {
 
 enum class State {
     Idle,
+    Initializing,
     Recording,
     Transcribing,
 };
@@ -12,5 +13,6 @@ enum class State {
 void create(HINSTANCE hInstance);
 void destroy();
 void setState(State state);
+void flash();
 
 }
