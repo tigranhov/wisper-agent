@@ -61,10 +61,9 @@ cp bin/Release/ggml.dll release/wisper-agent-nvidia/
 cp bin/Release/ggml-cpu.dll release/wisper-agent-nvidia/
 cp bin/Release/ggml-base.dll release/wisper-agent-nvidia/
 # CUDA (rename to whisper-cli-cuda.exe so app detects it)
+# cuBLAS DLLs (cublas64_12.dll, cublasLt64_12.dll) NOT bundled — loaded from user's NVIDIA driver
 cp bin/cuda/whisper-cli.exe release/wisper-agent-nvidia/whisper-cli-cuda.exe
 cp bin/cuda/ggml-cuda.dll release/wisper-agent-nvidia/
-cp bin/cuda/cublas64_12.dll release/wisper-agent-nvidia/
-cp bin/cuda/cublasLt64_12.dll release/wisper-agent-nvidia/
 cp bin/cuda/cudart64_12.dll release/wisper-agent-nvidia/
 # Icons
 cp assets/icons/*.ico release/wisper-agent-nvidia/assets/icons/
