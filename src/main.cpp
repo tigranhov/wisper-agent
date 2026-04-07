@@ -17,6 +17,7 @@
 #include "processor.h"
 #include "updater.h"
 #include "version.h"
+#include "cuda_manager.h"
 
 // App state
 enum class AppState { Initializing, Idle, Recording, Transcribing };
@@ -50,6 +51,7 @@ constexpr UINT WM_MODEL_PROGRESS = WM_APP + 23;
 constexpr UINT WM_PROCESSOR_READY = WM_APP + 24;
 constexpr UINT WM_UPDATE_CHECK_DONE = WM_APP + 30;
 constexpr UINT WM_UPDATE_DOWNLOAD_DONE = WM_APP + 31;
+constexpr UINT WM_CUBLAS_READY = WM_APP + 32;
 
 // Paths
 static std::wstring g_whisperExeGpu;  // CUDA path, empty if not found
@@ -321,6 +323,23 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             }
             return 0;
 
+        case WM_CUBLAS_READY: {
+            bool success = lParam != 0;
+            if (!g_downloading) {
+                // cuBLAS was a standalone download, reset overlay
+                overlay::setState(overlay::State::Idle);
+                tray::setState(tray::State::Idle);
+            }
+            if (success) {
+                cuda::addCuBlasToPath();
+                log("cuBLAS ready, GPU acceleration enabled");
+            } else {
+                tray::showBalloon(L"Wisper Agent", L"GPU libraries download failed. Using CPU.");
+                g_usingGpu = false;
+            }
+            return 0;
+        }
+
         case WM_UPDATE_CHECK_DONE:
             settings::notifyUpdateCheckComplete(
                 g_updateInfo.available,
@@ -563,6 +582,23 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
     // Start hotkey early so it's responsive during model download
     keyboard::start(g_hwnd);
     tray::setState(tray::State::Initializing);
+
+    // If CUDA variant detected, ensure cuBLAS is available for GPU acceleration
+    if (g_usingGpu) {
+        if (cuda::isCuBlasAvailable()) {
+            cuda::addCuBlasToPath();
+            log("cuBLAS found, GPU acceleration enabled");
+        } else {
+            log("cuBLAS not found, downloading for GPU acceleration...");
+            tray::showBalloon(L"Wisper Agent", L"Downloading GPU libraries (~550MB)...");
+            std::thread([hwnd = g_hwnd]() {
+                bool ok = cuda::ensureCuBlas([hwnd](int percent) {
+                    PostMessage(hwnd, WM_MODEL_PROGRESS, percent, 0);
+                });
+                PostMessage(hwnd, WM_CUBLAS_READY, 0, ok ? 1 : 0);
+            }).detach();
+        }
+    }
 
     // Check and download model if needed (async to keep UI responsive)
     if (!model::modelExists(g_modelSize)) {

@@ -17,6 +17,7 @@ add_executable(wisper-agent WIN32
   src/processor.cpp
   src/processor_llm.cpp
   src/updater.cpp
+  src/cuda_manager.cpp
 )
 
 target_link_libraries(wisper-agent PRIVATE
