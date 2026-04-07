@@ -66,7 +66,14 @@ static std::string cleanOutput(const std::string& text) {
 
 TranscribeResult transcribe(const std::wstring& wavPath, const std::wstring& whisperExe, const std::wstring& modelPath) {
     // Build command line
-    std::wstring cmdLine = L"\"" + whisperExe + L"\" -m \"" + modelPath + L"\" -f \"" + wavPath + L"\" --no-timestamps -l auto --no-prints";
+    std::wstring cmdLine = L"\"" + whisperExe + L"\" -m \"" + modelPath + L"\" -f \"" + wavPath + L"\" --no-timestamps -l auto --no-prints"
+        L" --prompt \"JavaScript TypeScript Python C++ C# Rust Go Java Kotlin Swift"
+        L" React Angular Vue Node.js Django Flask"
+        L" API REST GraphQL HTTP HTTPS JSON XML HTML CSS SCSS WebSocket OAuth JWT endpoint middleware webhook"
+        L" Docker Kubernetes AWS Azure GCP GitHub GitLab CI/CD pipeline deploy Nginx Redis PostgreSQL MongoDB MySQL"
+        L" function variable boolean integer string array object null undefined async await promise callback"
+        L" interface enum class struct commit merge branch pull request"
+        L" refactor debug compile runtime linter formatter ESLint component module dependency import\"";
 
     // Create pipes for stdout
     SECURITY_ATTRIBUTES sa = {};
