@@ -75,6 +75,9 @@ static LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         } else if (g_state == State::Downloading) {
             fillColor = RGB(50, 180, 80);  // Green
             text = g_dlText;
+        } else if (g_state == State::Error) {
+            fillColor = RGB(220, 140, 40);  // Amber/orange
+            text = L"No Mic";
         } else {
             EndPaint(hwnd, &ps);
             return 0;
@@ -111,7 +114,7 @@ static LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             InvalidateRect(g_hwnd, nullptr, TRUE);
         } else if (wParam == INIT_HIDE_TIMER_ID) {
             KillTimer(g_hwnd, INIT_HIDE_TIMER_ID);
-            if (g_state == State::Initializing) {
+            if (g_state == State::Initializing || g_state == State::Error) {
                 ShowWindow(g_hwnd, SW_HIDE);
             }
         }
@@ -184,12 +187,12 @@ void setState(State state, int percent) {
     if (state == State::Idle) {
         ShowWindow(g_hwnd, SW_HIDE);
     } else {
-        g_currentWidth = (state == State::Initializing || state == State::Downloading) ? INIT_WIDTH : DEFAULT_WIDTH;
+        g_currentWidth = (state == State::Initializing || state == State::Downloading || state == State::Error) ? INIT_WIDTH : DEFAULT_WIDTH;
         positionOnActiveMonitor();
         InvalidateRect(g_hwnd, nullptr, TRUE);
         ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
 
-        if (state == State::Initializing) {
+        if (state == State::Initializing || state == State::Error) {
             SetTimer(g_hwnd, INIT_HIDE_TIMER_ID, 2000, nullptr);
         }
     }

@@ -20,6 +20,7 @@ enum class State {
     Recording,
     Transcribing,
     Downloading,
+    Error,
 };
 
 struct AudioDevice {

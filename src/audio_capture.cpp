@@ -112,14 +112,10 @@ static void captureThreadProc() {
     CoUninitialize();
 }
 
-static std::wstring g_preparedDeviceId;
-static bool g_prepared = false;
-
-bool prepare(const std::wstring& deviceId) {
+static bool prepare(const std::wstring& deviceId) {
     // Release previous client if any
     if (g_captureClient) { g_captureClient->Release(); g_captureClient = nullptr; }
     if (g_audioClient) { g_audioClient->Release(); g_audioClient = nullptr; }
-    g_prepared = false;
 
     auto* enumerator = getEnumerator();
     if (!enumerator) return false;
@@ -166,17 +162,12 @@ bool prepare(const std::wstring& deviceId) {
     }
 
     device->Release();
-
-    g_preparedDeviceId = deviceId;
-    g_prepared = true;
     return true;
 }
 
 bool startCapture(const std::wstring& deviceId) {
-    // Re-prepare if device changed or not prepared yet
-    if (!g_prepared || deviceId != g_preparedDeviceId) {
-        if (!prepare(deviceId)) return false;
-    }
+    // Always re-prepare to detect disconnected devices
+    if (!prepare(deviceId)) return false;
 
     // Clear buffer
     {
@@ -212,9 +203,6 @@ CaptureResult stopCapture() {
         result.channels = g_channels;
         g_buffer.clear();
     }
-
-    // Audio client stays initialized — Reset() makes it reusable
-    // No need to re-prepare; startCapture() can call Start() directly
 
     return result;
 }

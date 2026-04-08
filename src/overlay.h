@@ -9,6 +9,7 @@ enum class State {
     Recording,
     Transcribing,
     Downloading,
+    Error,
 };
 
 void create(HINSTANCE hInstance);

@@ -73,6 +73,10 @@ void setState(State state) {
             g_nid.hIcon = g_iconIdle;
             wcscpy_s(g_nid.szTip, L"Wisper Agent \u2014 Downloading model...");
             break;
+        case State::Error:
+            g_nid.hIcon = g_iconIdle;
+            wcscpy_s(g_nid.szTip, L"Wisper Agent \u2014 No microphone detected");
+            break;
     }
     g_nid.uFlags = NIF_ICON | NIF_TIP;
     Shell_NotifyIconW(NIM_MODIFY, &g_nid);

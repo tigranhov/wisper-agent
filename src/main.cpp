@@ -159,8 +159,9 @@ static void onComboDown() {
     }
 
     if (!audio::startCapture(deviceId)) {
-        log("Failed to start audio capture");
-        tray::showBalloon(L"Wisper Agent", L"Failed to start microphone capture");
+        log("Failed to start audio capture — no microphone available");
+        tray::setState(tray::State::Error);
+        overlay::setState(overlay::State::Error);
         return;
     }
 
@@ -520,7 +521,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             } else if (id >= tray::IDM_MIC_BASE && id < tray::IDM_MIC_BASE + 100) {
                 g_selectedDeviceIndex = id - tray::IDM_MIC_BASE;
                 log("Selected mic: %ls", g_devices[g_selectedDeviceIndex].name.c_str());
-                audio::prepare(g_devices[g_selectedDeviceIndex].id);
                 saveCurrentSettings();
             }
             return 0;
@@ -567,15 +567,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
     g_modelSize = cfg.modelSize;
     g_modelPath = model::getModelPath(g_modelSize);
     g_processorEnabled = cfg.processorEnabled;
-
-    // Pre-initialize audio capture so hotkey response is instant
-    {
-        std::wstring deviceId = L"";
-        if (g_selectedDeviceIndex >= 0 && g_selectedDeviceIndex < (int)g_devices.size()) {
-            deviceId = g_devices[g_selectedDeviceIndex].id;
-        }
-        audio::prepare(deviceId);
-    }
 
     tray::create(g_hwnd);
     overlay::create(hInstance);
