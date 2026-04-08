@@ -104,6 +104,9 @@ Settings load() {
     auto procStr = findValue(json, "processorEnabled");
     if (procStr == "true") s.processorEnabled = true;
 
+    auto vocabStr = findValue(json, "vocabPromptEnabled");
+    if (vocabStr == "true") s.vocabPromptEnabled = true;
+
     return s;
 }
 
@@ -123,7 +126,8 @@ void save(const Settings& s) {
     file << "  \"repeatPressMode\": \"" << modeToString(s.repeatPressMode) << "\",\n";
     file << "  \"selectedMicIndex\": " << s.selectedMicIndex << ",\n";
     file << "  \"modelSize\": \"" << model::modelSizeString(s.modelSize) << "\",\n";
-    file << "  \"processorEnabled\": " << (s.processorEnabled ? "true" : "false") << "\n";
+    file << "  \"processorEnabled\": " << (s.processorEnabled ? "true" : "false") << ",\n";
+    file << "  \"vocabPromptEnabled\": " << (s.vocabPromptEnabled ? "true" : "false") << "\n";
     file << "}\n";
     file.close();
 
@@ -153,6 +157,8 @@ static constexpr int ID_RADIO_TINY   = 201;
 static constexpr int ID_RADIO_BASE   = 202;
 static constexpr int ID_RADIO_SMALL  = 203;
 static constexpr int ID_RADIO_MEDIUM = 204;
+// Control IDs — vocab prompt
+static constexpr int ID_CHECK_VOCAB     = 205;
 // Control IDs — processor
 static constexpr int ID_CHECK_PROCESSOR = 301;
 static constexpr int ID_BTN_PROCESSOR   = 302;
@@ -389,6 +395,10 @@ static LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                 else
                     g_dlgSettings->modelSize = model::ModelSize::Small;
 
+                // Read vocab prompt checkbox
+                g_dlgSettings->vocabPromptEnabled =
+                    SendDlgItemMessageW(hwnd, ID_CHECK_VOCAB, BM_GETCHECK, 0, 0) == BST_CHECKED;
+
                 // Read processor checkbox
                 g_dlgSettings->processorEnabled =
                     SendDlgItemMessageW(hwnd, ID_CHECK_PROCESSOR, BM_GETCHECK, 0, 0) == BST_CHECKED;
@@ -526,7 +536,7 @@ bool showSettingsDialog(HINSTANCE hInstance, Settings& s, const wchar_t* backend
     g_dlgSettings = &s;
     g_dlgResult = false;
 
-    int dlgW = 340, dlgH = 600;
+    int dlgW = 340, dlgH = 630;
     int screenW = GetSystemMetrics(SM_CXSCREEN);
     int screenH = GetSystemMetrics(SM_CYSCREEN);
     int x = (screenW - dlgW) / 2;
@@ -582,7 +592,7 @@ bool showSettingsDialog(HINSTANCE hInstance, Settings& s, const wchar_t* backend
     // --- Model size group ---
     HWND hGroup2 = CreateWindowExW(0, L"BUTTON", L"Transcription model:",
         WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-        10, 150, 310, 140,
+        10, 150, 310, 170,
         g_dlgHwnd, nullptr, hInstance, nullptr);
     SendMessageW(hGroup2, WM_SETFONT, (WPARAM)hFont, TRUE);
 
@@ -621,19 +631,30 @@ bool showSettingsDialog(HINSTANCE hInstance, Settings& s, const wchar_t* backend
             SendMessageW(hSmall, BM_SETCHECK, BST_CHECKED, 0); break;
     }
 
+    // Vocab prompt checkbox (inside model group)
+    HWND hVocabCheck = CreateWindowExW(0, L"BUTTON",
+        L"Programming vocabulary hint",
+        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        25, 280, 280, 22,
+        g_dlgHwnd, (HMENU)(INT_PTR)ID_CHECK_VOCAB, hInstance, nullptr);
+    SendMessageW(hVocabCheck, WM_SETFONT, (WPARAM)hFont, TRUE);
+    if (s.vocabPromptEnabled) {
+        SendMessageW(hVocabCheck, BM_SETCHECK, BST_CHECKED, 0);
+    }
+
     // --- AI Processing group ---
     bool procReady = g_processorCb.isReady && g_processorCb.isReady();
 
     HWND hGroup3 = CreateWindowExW(0, L"BUTTON", L"AI Text Processing:",
         WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-        10, 300, 310, 80,
+        10, 330, 310, 80,
         g_dlgHwnd, nullptr, hInstance, nullptr);
     SendMessageW(hGroup3, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     g_hProcCheck = CreateWindowExW(0, L"BUTTON",
         L"Enable (~1GB download)",
         WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        25, 322, 170, 22,
+        25, 352, 170, 22,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_CHECK_PROCESSOR, hInstance, nullptr);
     SendMessageW(g_hProcCheck, WM_SETFONT, (WPARAM)hFont, TRUE);
     if (s.processorEnabled && procReady) {
@@ -646,27 +667,27 @@ bool showSettingsDialog(HINSTANCE hInstance, Settings& s, const wchar_t* backend
     g_hProcBtn = CreateWindowExW(0, L"BUTTON",
         procReady ? L"Remove" : L"Download",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        220, 320, 90, 26,
+        220, 350, 90, 26,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_BTN_PROCESSOR, hInstance, nullptr);
     SendMessageW(g_hProcBtn, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     HWND hLogBtn = CreateWindowExW(0, L"BUTTON", L"Show Log",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        25, 350, 90, 24,
+        25, 380, 90, 24,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_BTN_SHOW_LOG, hInstance, nullptr);
     SendMessageW(hLogBtn, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // Backend info line
     HWND hInfo = CreateWindowExW(0, L"STATIC", backendInfo,
         WS_CHILD | WS_VISIBLE,
-        10, 390, 310, 18,
+        10, 420, 310, 18,
         g_dlgHwnd, nullptr, hInstance, nullptr);
     SendMessageW(hInfo, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // --- Updates group ---
     HWND hGroup4 = CreateWindowExW(0, L"BUTTON", L"Updates:",
         WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-        10, 412, 310, 90,
+        10, 442, 310, 90,
         g_dlgHwnd, nullptr, hInstance, nullptr);
     SendMessageW(hGroup4, WM_SETFONT, (WPARAM)hFont, TRUE);
 
@@ -674,35 +695,35 @@ bool showSettingsDialog(HINSTANCE hInstance, Settings& s, const wchar_t* backend
     std::wstring verLabel = L"Current version: " WISPER_AGENT_VERSION_W;
     HWND hVerLabel = CreateWindowExW(0, L"STATIC", verLabel.c_str(),
         WS_CHILD | WS_VISIBLE,
-        25, 432, 280, 18,
+        25, 462, 280, 18,
         g_dlgHwnd, nullptr, hInstance, nullptr);
     SendMessageW(hVerLabel, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // Check for Updates button
     g_hUpdateBtn = CreateWindowExW(0, L"BUTTON", L"Check for Updates",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        25, 456, 130, 26,
+        25, 486, 130, 26,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_BTN_CHECK_UPDATE, hInstance, nullptr);
     SendMessageW(g_hUpdateBtn, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // Update status label
     g_hUpdateStatus = CreateWindowExW(0, L"STATIC", L"",
         WS_CHILD | WS_VISIBLE | SS_LEFT,
-        160, 460, 155, 18,
+        160, 490, 155, 18,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_STATIC_UPDATE_STATUS, hInstance, nullptr);
     SendMessageW(g_hUpdateStatus, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // View Changes button (hidden until update found)
     g_hChangelogBtn = CreateWindowExW(0, L"BUTTON", L"View Changes",
         WS_CHILD | BS_PUSHBUTTON,
-        25, 482, 100, 24,
+        25, 512, 100, 24,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_BTN_VIEW_CHANGELOG, hInstance, nullptr);
     SendMessageW(g_hChangelogBtn, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // Download & Install button (hidden until update found)
     g_hInstallBtn = CreateWindowExW(0, L"BUTTON", L"Download && Install",
         WS_CHILD | BS_PUSHBUTTON,
-        180, 482, 130, 24,
+        180, 512, 130, 24,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_BTN_INSTALL_UPDATE, hInstance, nullptr);
     SendMessageW(g_hInstallBtn, WM_SETFONT, (WPARAM)hFont, TRUE);
 

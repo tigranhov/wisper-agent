@@ -9,7 +9,7 @@ struct TranscribeResult {
 };
 
 // Transcribe a WAV file using whisper-cli.exe.
-TranscribeResult transcribe(const std::wstring& wavPath, const std::wstring& whisperExe, const std::wstring& modelPath);
+TranscribeResult transcribe(const std::wstring& wavPath, const std::wstring& whisperExe, const std::wstring& modelPath, bool useVocabPrompt = false);
 
 // Kill the running whisper-cli process (if any)
 void cancelCurrent();

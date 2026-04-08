@@ -36,6 +36,9 @@ static settings::RepeatPressMode g_repeatMode = settings::RepeatPressMode::Queue
 static model::ModelSize g_modelSize = model::ModelSize::Small;
 static bool g_downloading = false;
 
+// Transcription options
+static bool g_vocabPromptEnabled = false;
+
 // Processor
 static bool g_processorEnabled = false;
 
@@ -121,6 +124,7 @@ static void saveCurrentSettings() {
     cfg.selectedMicIndex = g_selectedDeviceIndex;
     cfg.modelSize = g_modelSize;
     cfg.processorEnabled = g_processorEnabled;
+    cfg.vocabPromptEnabled = g_vocabPromptEnabled;
     settings::save(cfg);
 }
 
@@ -208,7 +212,8 @@ static void onComboUp() {
     auto whisperCpu = g_whisperExeCpu;
     auto modelPath = g_modelPath;
     bool usingGpu = g_usingGpu;
-    std::thread([result = std::move(result), hwnd, whisperExe, whisperCpu, modelPath, usingGpu]() {
+    bool vocabPrompt = g_vocabPromptEnabled;
+    std::thread([result = std::move(result), hwnd, whisperExe, whisperCpu, modelPath, usingGpu, vocabPrompt]() {
         transcriber::resetCancelFlag();
 
         auto wavPath = wav::writeTemp(result.samples, result.sampleRate, result.channels);
@@ -220,10 +225,10 @@ static void onComboUp() {
 
         log("WAV written: %ls", wavPath.c_str());
 
-        auto txResult = transcriber::transcribe(wavPath, whisperExe, modelPath);
+        auto txResult = transcriber::transcribe(wavPath, whisperExe, modelPath, vocabPrompt);
         if (!txResult.processOk && usingGpu) {
             log("GPU transcription failed, retrying with CPU");
-            txResult = transcriber::transcribe(wavPath, whisperCpu, modelPath);
+            txResult = transcriber::transcribe(wavPath, whisperCpu, modelPath, vocabPrompt);
             if (txResult.processOk) {
                 PostMessage(hwnd, WM_GPU_FALLBACK, 0, 0);
             }
@@ -506,6 +511,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                         }
                     }
 
+                    g_vocabPromptEnabled = cfg.vocabPromptEnabled;
+
                     // Handle processor toggle — deps already managed via button
                     if (cfg.processorEnabled != g_processorEnabled) {
                         g_processorEnabled = cfg.processorEnabled;
@@ -567,6 +574,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
     g_modelSize = cfg.modelSize;
     g_modelPath = model::getModelPath(g_modelSize);
     g_processorEnabled = cfg.processorEnabled;
+    g_vocabPromptEnabled = cfg.vocabPromptEnabled;
 
     tray::create(g_hwnd);
     overlay::create(hInstance);

@@ -13,6 +13,7 @@ struct Settings {
     int selectedMicIndex = -1;
     model::ModelSize modelSize = model::ModelSize::Small;
     bool processorEnabled = false;
+    bool vocabPromptEnabled = false;
 };
 
 // Callbacks for processor dependency management (provided by main.cpp)
