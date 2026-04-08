@@ -1,12 +1,12 @@
 #!/bin/bash
-# Package wisper-agent for GitHub release
+# Package speakinto for GitHub release
 # Usage: bash scripts/package-release.sh
-# Output: release/wisper-agent-win64.zip
+# Output: release/speakinto-win64.zip
 
 set -e
 
-RELEASE_DIR="release/wisper-agent"
-ZIP_NAME="release/wisper-agent-win64.zip"
+RELEASE_DIR="release/speakinto"
+ZIP_NAME="release/speakinto-win64.zip"
 
 # Clean
 rm -rf release/
@@ -18,7 +18,7 @@ cmake -B build -G "Visual Studio 17 2022" -A x64
 cmake --build build --config Release
 
 # Copy app exe
-cp build/Release/wisper-agent.exe "$RELEASE_DIR/"
+cp build/Release/speakinto.exe "$RELEASE_DIR/"
 
 # Copy whisper.cpp binaries (exe + DLLs)
 cp bin/Release/whisper-cli.exe "$RELEASE_DIR/"
@@ -38,7 +38,7 @@ ls -lh "$RELEASE_DIR/assets/icons/"
 
 # Create ZIP
 cd release
-zip -r "../$ZIP_NAME" wisper-agent/
+zip -r "../$ZIP_NAME" speakinto/
 cd ..
 
 echo ""

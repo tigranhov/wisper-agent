@@ -64,9 +64,10 @@ static std::string cleanOutput(const std::string& text) {
     return cleaned.substr(start, end - start + 1);
 }
 
-TranscribeResult transcribe(const std::wstring& wavPath, const std::wstring& whisperExe, const std::wstring& modelPath, bool useVocabPrompt) {
+TranscribeResult transcribe(const std::wstring& wavPath, const std::wstring& whisperExe, const std::wstring& modelPath, const std::string& language, bool useVocabPrompt) {
     // Build command line
-    std::wstring cmdLine = L"\"" + whisperExe + L"\" -m \"" + modelPath + L"\" -f \"" + wavPath + L"\" --no-timestamps -l auto --no-prints";
+    std::wstring langW(language.begin(), language.end());
+    std::wstring cmdLine = L"\"" + whisperExe + L"\" -m \"" + modelPath + L"\" -f \"" + wavPath + L"\" --no-timestamps -l " + langW + L" --no-prints";
 
     if (useVocabPrompt) {
         cmdLine +=

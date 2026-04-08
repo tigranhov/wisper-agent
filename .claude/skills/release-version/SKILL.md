@@ -7,7 +7,7 @@ argument-hint: "[version-bump: patch|minor|major]"
 
 # Release Version
 
-Build, package, and publish a new release of Wisper Agent to GitHub.
+Build, package, and publish a new release of SpeakInto to GitHub.
 
 ## Step 1: Determine version
 
@@ -26,7 +26,7 @@ Update `AppVersion` in **both** `installer-universal.iss` and `installer-nvidia.
 ## Step 3: Build
 
 ```
-taskkill /f /im wisper-agent.exe 2>/dev/null
+taskkill /f /im speakinto.exe 2>/dev/null
 cmake -B build -G "Visual Studio 17 2022" -A x64
 cmake --build build --config Release
 ```
@@ -37,36 +37,36 @@ Verify the build succeeds with no errors.
 
 **Universal ZIP (CPU only):**
 ```
-rm -rf release/wisper-agent-universal
-mkdir -p release/wisper-agent-universal/assets/icons
-cp build/Release/wisper-agent.exe release/wisper-agent-universal/
-cp bin/Release/whisper-cli.exe release/wisper-agent-universal/
-cp bin/Release/whisper.dll release/wisper-agent-universal/
-cp bin/Release/ggml.dll release/wisper-agent-universal/
-cp bin/Release/ggml-cpu.dll release/wisper-agent-universal/
-cp bin/Release/ggml-base.dll release/wisper-agent-universal/
-cp assets/icons/*.ico release/wisper-agent-universal/assets/icons/
-cd release && powershell -Command "Compress-Archive -Path 'wisper-agent-universal' -DestinationPath 'wisper-agent-universal-win64.zip' -Force"
+rm -rf release/speakinto-universal
+mkdir -p release/speakinto-universal/assets/icons
+cp build/Release/speakinto.exe release/speakinto-universal/
+cp bin/Release/whisper-cli.exe release/speakinto-universal/
+cp bin/Release/whisper.dll release/speakinto-universal/
+cp bin/Release/ggml.dll release/speakinto-universal/
+cp bin/Release/ggml-cpu.dll release/speakinto-universal/
+cp bin/Release/ggml-base.dll release/speakinto-universal/
+cp assets/icons/*.ico release/speakinto-universal/assets/icons/
+cd release && powershell -Command "Compress-Archive -Path 'speakinto-universal' -DestinationPath 'speakinto-universal-win64.zip' -Force"
 ```
 
 **NVIDIA ZIP (CUDA + CPU fallback):**
 ```
-rm -rf release/wisper-agent-nvidia
-mkdir -p release/wisper-agent-nvidia/assets/icons
-cp build/Release/wisper-agent.exe release/wisper-agent-nvidia/
+rm -rf release/speakinto-nvidia
+mkdir -p release/speakinto-nvidia/assets/icons
+cp build/Release/speakinto.exe release/speakinto-nvidia/
 # CPU fallback exe + shared DLLs (no cuBLAS dependency)
-cp bin/Release/whisper-cli.exe release/wisper-agent-nvidia/
-cp bin/Release/whisper.dll release/wisper-agent-nvidia/
-cp bin/Release/ggml.dll release/wisper-agent-nvidia/
-cp bin/Release/ggml-cpu.dll release/wisper-agent-nvidia/
-cp bin/Release/ggml-base.dll release/wisper-agent-nvidia/
+cp bin/Release/whisper-cli.exe release/speakinto-nvidia/
+cp bin/Release/whisper.dll release/speakinto-nvidia/
+cp bin/Release/ggml.dll release/speakinto-nvidia/
+cp bin/Release/ggml-cpu.dll release/speakinto-nvidia/
+cp bin/Release/ggml-base.dll release/speakinto-nvidia/
 # CUDA exe (rename so app detects it) + CUDA plugin
-cp bin/cuda/whisper-cli.exe release/wisper-agent-nvidia/whisper-cli-cuda.exe
-cp bin/cuda/ggml-cuda.dll release/wisper-agent-nvidia/
-cp bin/cuda/cudart64_12.dll release/wisper-agent-nvidia/
+cp bin/cuda/whisper-cli.exe release/speakinto-nvidia/whisper-cli-cuda.exe
+cp bin/cuda/ggml-cuda.dll release/speakinto-nvidia/
+cp bin/cuda/cudart64_12.dll release/speakinto-nvidia/
 # Icons
-cp assets/icons/*.ico release/wisper-agent-nvidia/assets/icons/
-cd release && powershell -Command "Compress-Archive -Path 'wisper-agent-nvidia' -DestinationPath 'wisper-agent-nvidia-win64.zip' -Force"
+cp assets/icons/*.ico release/speakinto-nvidia/assets/icons/
+cd release && powershell -Command "Compress-Archive -Path 'speakinto-nvidia' -DestinationPath 'speakinto-nvidia-win64.zip' -Force"
 ```
 
 ## Step 5: Build installers
@@ -77,8 +77,8 @@ cd release && powershell -Command "Compress-Archive -Path 'wisper-agent-nvidia' 
 ```
 
 This produces:
-- `release/wisper-agent-setup-universal-win64.exe`
-- `release/wisper-agent-nvidia-setup-win64.exe`
+- `release/speakinto-setup-universal-win64.exe`
+- `release/speakinto-nvidia-setup-win64.exe`
 
 ## Step 6: Generate changelog
 
@@ -102,10 +102,10 @@ This produces:
 3. Create the GitHub release:
    ```
    gh release create vX.Y.Z \
-     release/wisper-agent-universal-win64.zip \
-     release/wisper-agent-nvidia-win64.zip \
-     release/wisper-agent-setup-universal-win64.exe \
-     release/wisper-agent-nvidia-setup-win64.exe \
+     release/speakinto-universal-win64.zip \
+     release/speakinto-nvidia-win64.zip \
+     release/speakinto-setup-universal-win64.exe \
+     release/speakinto-nvidia-setup-win64.exe \
      --title "vX.Y.Z — <short title>" \
      --notes "<changelog from Step 6>"
    ```
@@ -114,10 +114,10 @@ This produces:
 ## Release assets checklist
 
 Every release MUST include all four:
-- `wisper-agent-universal-win64.zip` — portable, CPU only
-- `wisper-agent-nvidia-win64.zip` — portable, CUDA + CPU fallback
-- `wisper-agent-setup-universal-win64.exe` — installer, CPU only
-- `wisper-agent-nvidia-setup-win64.exe` — installer, CUDA + CPU fallback
+- `speakinto-universal-win64.zip` — portable, CPU only
+- `speakinto-nvidia-win64.zip` — portable, CUDA + CPU fallback
+- `speakinto-setup-universal-win64.exe` — installer, CPU only
+- `speakinto-nvidia-setup-win64.exe` — installer, CUDA + CPU fallback
 
 ## Notes
 

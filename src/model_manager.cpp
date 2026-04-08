@@ -72,7 +72,7 @@ static std::wstring getModelDir() {
     if (FAILED(SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, 0, appdata))) {
         return L"";
     }
-    return std::wstring(appdata) + L"\\wisper-agent\\models";
+    return std::wstring(appdata) + L"\\speakinto\\models";
 }
 
 std::wstring getModelPath(ModelSize size) {
@@ -144,7 +144,7 @@ bool downloadModel(ModelSize size, std::function<void(int percent)> onProgress) 
 
     log("Downloading model %s to: %ls", info.displayName, modelPath.c_str());
 
-    HINTERNET hSession = WinHttpOpen(L"WisperAgent/1.0",
+    HINTERNET hSession = WinHttpOpen(L"SpeakInto/1.0",
                                       WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
                                       WINHTTP_NO_PROXY_NAME,
                                       WINHTTP_NO_PROXY_BYPASS, 0);

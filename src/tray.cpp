@@ -42,7 +42,7 @@ void create(HWND hwnd) {
     g_nid.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;
     g_nid.uCallbackMessage = WM_TRAY_ICON;
     g_nid.hIcon = g_iconIdle;
-    swprintf_s(g_nid.szTip, L"Wisper Agent v" WISPER_AGENT_VERSION_W L" \u2014 Ready (Ctrl+`)");
+    swprintf_s(g_nid.szTip, L"SpeakInto v" SPEAKINTO_VERSION_W L" \u2014 Ready (Ctrl+`)");
 
     Shell_NotifyIconW(NIM_ADD, &g_nid);
 }
@@ -55,27 +55,27 @@ void setState(State state) {
     switch (state) {
         case State::Idle:
             g_nid.hIcon = g_iconIdle;
-            swprintf_s(g_nid.szTip, L"Wisper Agent v" WISPER_AGENT_VERSION_W L" \u2014 Ready (Ctrl+`)");
+            swprintf_s(g_nid.szTip, L"SpeakInto v" SPEAKINTO_VERSION_W L" \u2014 Ready (Ctrl+`)");
             break;
         case State::Initializing:
             g_nid.hIcon = g_iconIdle;
-            swprintf_s(g_nid.szTip, L"Wisper Agent v" WISPER_AGENT_VERSION_W L" \u2014 Initializing...");
+            swprintf_s(g_nid.szTip, L"SpeakInto v" SPEAKINTO_VERSION_W L" \u2014 Initializing...");
             break;
         case State::Recording:
             g_nid.hIcon = g_iconRecording;
-            wcscpy_s(g_nid.szTip, L"Wisper Agent \u2014 Recording...");
+            wcscpy_s(g_nid.szTip, L"SpeakInto \u2014 Recording...");
             break;
         case State::Transcribing:
             g_nid.hIcon = g_iconTranscribing;
-            wcscpy_s(g_nid.szTip, L"Wisper Agent \u2014 Transcribing...");
+            wcscpy_s(g_nid.szTip, L"SpeakInto \u2014 Transcribing...");
             break;
         case State::Downloading:
             g_nid.hIcon = g_iconIdle;
-            wcscpy_s(g_nid.szTip, L"Wisper Agent \u2014 Downloading model...");
+            wcscpy_s(g_nid.szTip, L"SpeakInto \u2014 Downloading model...");
             break;
         case State::Error:
             g_nid.hIcon = g_iconIdle;
-            wcscpy_s(g_nid.szTip, L"Wisper Agent \u2014 No microphone detected");
+            wcscpy_s(g_nid.szTip, L"SpeakInto \u2014 No microphone detected");
             break;
     }
     g_nid.uFlags = NIF_ICON | NIF_TIP;
@@ -104,7 +104,7 @@ void showContextMenu(HWND hwnd, const std::vector<AudioDevice>& devices, int sel
         }
     }
 
-    AppendMenuW(hMenu, MF_STRING | MF_GRAYED, 0, L"Wisper Agent");
+    AppendMenuW(hMenu, MF_STRING | MF_GRAYED, 0, L"SpeakInto");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(hMenu, MF_POPUP, (UINT_PTR)hMicMenu, L"Microphone");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);

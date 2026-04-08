@@ -1,4 +1,4 @@
 #pragma once
 
-#define WISPER_AGENT_VERSION   "0.3.6"
-#define WISPER_AGENT_VERSION_W L"0.3.6"
+#define SPEAKINTO_VERSION   "0.3.6"
+#define SPEAKINTO_VERSION_W L"0.3.6"

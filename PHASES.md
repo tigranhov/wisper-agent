@@ -1,4 +1,4 @@
-# Wisper Agent — Development Phases
+# SpeakInto — Development Phases
 
 ## Phase 1: Core MVP (Windows) — LOCAL ONLY, PUSH-TO-TALK
 **Goal:** Electron tray app running as background service. Hold keybind → record → local STT via whisper.cpp → paste into active window.

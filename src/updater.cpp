@@ -139,7 +139,7 @@ static std::string detectVariant() {
 // --- HTTP GET (returns response body as string) ---
 
 static std::string httpGet(const wchar_t* host, const wchar_t* path, std::string& error) {
-    HINTERNET hSession = WinHttpOpen(L"WisperAgent/1.0",
+    HINTERNET hSession = WinHttpOpen(L"SpeakInto/1.0",
                                       WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
                                       WINHTTP_NO_PROXY_NAME,
                                       WINHTTP_NO_PROXY_BYPASS, 0);
@@ -250,7 +250,7 @@ UpdateInfo checkForUpdates() {
 
     std::string error;
     auto json = httpGet(L"api.github.com",
-                        L"/repos/tigranhov/wisper-agent/releases/latest",
+                        L"/repos/tigranhov/speakinto/releases/latest",
                         error);
 
     if (json.empty()) {
@@ -281,11 +281,11 @@ UpdateInfo checkForUpdates() {
     info.downloadUrl = findAssetUrl(json, variant);
 
     log("Latest version: %s (current: %s, variant: %s)",
-        version.c_str(), WISPER_AGENT_VERSION, variant.c_str());
+        version.c_str(), SPEAKINTO_VERSION, variant.c_str());
 
-    if (isNewerVersion(WISPER_AGENT_VERSION, version)) {
+    if (isNewerVersion(SPEAKINTO_VERSION, version)) {
         info.available = true;
-        log("Update available: %s -> %s", WISPER_AGENT_VERSION, version.c_str());
+        log("Update available: %s -> %s", SPEAKINTO_VERSION, version.c_str());
     } else {
         log("Already up to date");
     }
@@ -321,10 +321,10 @@ std::wstring downloadInstaller(const std::string& url,
     // Determine output path in %TEMP%
     wchar_t tempDir[MAX_PATH];
     GetTempPathW(MAX_PATH, tempDir);
-    std::wstring tempPath = std::wstring(tempDir) + L"wisper-agent-update.exe";
+    std::wstring tempPath = std::wstring(tempDir) + L"speakinto-update.exe";
     std::wstring downloadPath = tempPath + L".tmp";
 
-    HINTERNET hSession = WinHttpOpen(L"WisperAgent/1.0",
+    HINTERNET hSession = WinHttpOpen(L"SpeakInto/1.0",
                                       WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
                                       WINHTTP_NO_PROXY_NAME,
                                       WINHTTP_NO_PROXY_BYPASS, 0);

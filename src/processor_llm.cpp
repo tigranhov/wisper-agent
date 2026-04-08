@@ -46,7 +46,7 @@ static std::wstring getLlmDir() {
     if (FAILED(SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, 0, appdata))) {
         return L"";
     }
-    return std::wstring(appdata) + L"\\wisper-agent\\llm";
+    return std::wstring(appdata) + L"\\speakinto\\llm";
 }
 
 static std::wstring getServerPath() {
@@ -86,7 +86,7 @@ bool isReady() {
 static bool downloadFile(const wchar_t* host, const wchar_t* urlPath,
                           const std::wstring& destPath, size_t minSize,
                           std::function<void(int percent)> onProgress) {
-    HINTERNET hSession = WinHttpOpen(L"WisperAgent/1.0",
+    HINTERNET hSession = WinHttpOpen(L"SpeakInto/1.0",
                                       WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
                                       WINHTTP_NO_PROXY_NAME,
                                       WINHTTP_NO_PROXY_BYPASS, 0);
@@ -366,7 +366,7 @@ void removeDependencies() {
 // --- Text processing via HTTP ---
 
 static std::string httpPost(const char* body, int bodyLen) {
-    HINTERNET hSession = WinHttpOpen(L"WisperAgent/1.0",
+    HINTERNET hSession = WinHttpOpen(L"SpeakInto/1.0",
                                       WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
                                       WINHTTP_NO_PROXY_NAME,
                                       WINHTTP_NO_PROXY_BYPASS, 0);

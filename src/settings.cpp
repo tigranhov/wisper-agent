@@ -18,7 +18,7 @@ static std::wstring getSettingsDir() {
     if (FAILED(SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, 0, appdata))) {
         return L"";
     }
-    return std::wstring(appdata) + L"\\wisper-agent";
+    return std::wstring(appdata) + L"\\speakinto";
 }
 
 static std::wstring getSettingsPath() {
@@ -107,6 +107,9 @@ Settings load() {
     auto vocabStr = findValue(json, "vocabPromptEnabled");
     if (vocabStr == "true") s.vocabPromptEnabled = true;
 
+    auto langStr = findValue(json, "language");
+    if (!langStr.empty()) s.language = langStr;
+
     return s;
 }
 
@@ -127,7 +130,8 @@ void save(const Settings& s) {
     file << "  \"selectedMicIndex\": " << s.selectedMicIndex << ",\n";
     file << "  \"modelSize\": \"" << model::modelSizeString(s.modelSize) << "\",\n";
     file << "  \"processorEnabled\": " << (s.processorEnabled ? "true" : "false") << ",\n";
-    file << "  \"vocabPromptEnabled\": " << (s.vocabPromptEnabled ? "true" : "false") << "\n";
+    file << "  \"vocabPromptEnabled\": " << (s.vocabPromptEnabled ? "true" : "false") << ",\n";
+    file << "  \"language\": \"" << s.language << "\"\n";
     file << "}\n";
     file.close();
 
@@ -136,7 +140,7 @@ void save(const Settings& s) {
 
 // --- Settings Dialog ---
 
-static const wchar_t* SETTINGS_CLASS = L"WisperSettingsClass";
+static const wchar_t* SETTINGS_CLASS = L"SpeakIntoSettingsClass";
 static Settings* g_dlgSettings = nullptr;
 static bool g_dlgResult = false;
 static bool g_dlgClosed = false;
@@ -157,6 +161,113 @@ static constexpr int ID_RADIO_TINY   = 201;
 static constexpr int ID_RADIO_BASE   = 202;
 static constexpr int ID_RADIO_SMALL  = 203;
 static constexpr int ID_RADIO_MEDIUM = 204;
+// Control IDs — language
+static constexpr int ID_COMBO_LANGUAGE  = 206;
+
+// Whisper language list (code + display name)
+static const struct { const char* code; const wchar_t* label; } g_languages[] = {
+    {"auto", L"Auto-detect"},
+    {"en",   L"English"},
+    {"zh",   L"Chinese"},
+    {"de",   L"German"},
+    {"es",   L"Spanish"},
+    {"ru",   L"Russian"},
+    {"ko",   L"Korean"},
+    {"fr",   L"French"},
+    {"ja",   L"Japanese"},
+    {"pt",   L"Portuguese"},
+    {"tr",   L"Turkish"},
+    {"pl",   L"Polish"},
+    {"ca",   L"Catalan"},
+    {"nl",   L"Dutch"},
+    {"ar",   L"Arabic"},
+    {"sv",   L"Swedish"},
+    {"it",   L"Italian"},
+    {"id",   L"Indonesian"},
+    {"hi",   L"Hindi"},
+    {"fi",   L"Finnish"},
+    {"vi",   L"Vietnamese"},
+    {"he",   L"Hebrew"},
+    {"uk",   L"Ukrainian"},
+    {"el",   L"Greek"},
+    {"ms",   L"Malay"},
+    {"cs",   L"Czech"},
+    {"ro",   L"Romanian"},
+    {"da",   L"Danish"},
+    {"hu",   L"Hungarian"},
+    {"ta",   L"Tamil"},
+    {"no",   L"Norwegian"},
+    {"th",   L"Thai"},
+    {"ur",   L"Urdu"},
+    {"hr",   L"Croatian"},
+    {"bg",   L"Bulgarian"},
+    {"lt",   L"Lithuanian"},
+    {"la",   L"Latin"},
+    {"mi",   L"Maori"},
+    {"ml",   L"Malayalam"},
+    {"cy",   L"Welsh"},
+    {"sk",   L"Slovak"},
+    {"te",   L"Telugu"},
+    {"fa",   L"Persian"},
+    {"lv",   L"Latvian"},
+    {"bn",   L"Bengali"},
+    {"sr",   L"Serbian"},
+    {"az",   L"Azerbaijani"},
+    {"sl",   L"Slovenian"},
+    {"kn",   L"Kannada"},
+    {"et",   L"Estonian"},
+    {"mk",   L"Macedonian"},
+    {"br",   L"Breton"},
+    {"eu",   L"Basque"},
+    {"is",   L"Icelandic"},
+    {"hy",   L"Armenian"},
+    {"ne",   L"Nepali"},
+    {"mn",   L"Mongolian"},
+    {"bs",   L"Bosnian"},
+    {"kk",   L"Kazakh"},
+    {"sq",   L"Albanian"},
+    {"sw",   L"Swahili"},
+    {"gl",   L"Galician"},
+    {"mr",   L"Marathi"},
+    {"pa",   L"Punjabi"},
+    {"si",   L"Sinhala"},
+    {"km",   L"Khmer"},
+    {"sn",   L"Shona"},
+    {"yo",   L"Yoruba"},
+    {"so",   L"Somali"},
+    {"af",   L"Afrikaans"},
+    {"oc",   L"Occitan"},
+    {"ka",   L"Georgian"},
+    {"be",   L"Belarusian"},
+    {"tg",   L"Tajik"},
+    {"sd",   L"Sindhi"},
+    {"gu",   L"Gujarati"},
+    {"am",   L"Amharic"},
+    {"yi",   L"Yiddish"},
+    {"lo",   L"Lao"},
+    {"uz",   L"Uzbek"},
+    {"fo",   L"Faroese"},
+    {"ht",   L"Haitian Creole"},
+    {"ps",   L"Pashto"},
+    {"tk",   L"Turkmen"},
+    {"nn",   L"Nynorsk"},
+    {"mt",   L"Maltese"},
+    {"sa",   L"Sanskrit"},
+    {"lb",   L"Luxembourgish"},
+    {"my",   L"Myanmar"},
+    {"bo",   L"Tibetan"},
+    {"tl",   L"Tagalog"},
+    {"mg",   L"Malagasy"},
+    {"as",   L"Assamese"},
+    {"tt",   L"Tatar"},
+    {"haw",  L"Hawaiian"},
+    {"ln",   L"Lingala"},
+    {"ha",   L"Hausa"},
+    {"ba",   L"Bashkir"},
+    {"jw",   L"Javanese"},
+    {"su",   L"Sundanese"},
+};
+static constexpr int g_langCount = sizeof(g_languages) / sizeof(g_languages[0]);
 // Control IDs — vocab prompt
 static constexpr int ID_CHECK_VOCAB     = 205;
 // Control IDs — processor
@@ -174,7 +285,7 @@ static constexpr int ID_CANCEL       = IDCANCEL;
 
 // --- Log viewer ---
 
-static const wchar_t* LOG_VIEWER_CLASS = L"WisperLogViewerClass";
+static const wchar_t* LOG_VIEWER_CLASS = L"SpeakIntoLogViewerClass";
 static HFONT g_logFont = nullptr;
 
 static LRESULT CALLBACK LogViewerWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -192,7 +303,7 @@ static LRESULT CALLBACK LogViewerWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 static void showLogViewer(HINSTANCE hInstance) {
     wchar_t appdata[MAX_PATH];
     if (FAILED(SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, 0, appdata))) return;
-    std::wstring logPath = std::wstring(appdata) + L"\\wisper-agent\\transcription.log";
+    std::wstring logPath = std::wstring(appdata) + L"\\speakinto\\transcription.log";
 
     std::ifstream file(logPath);
     if (!file.is_open()) return;
@@ -308,7 +419,7 @@ static HWND g_hChangelogBtn = nullptr;
 static std::string g_updateChangelog;
 static std::string g_updateVersion;
 
-static const wchar_t* CHANGELOG_VIEWER_CLASS = L"WisperChangelogViewerClass";
+static const wchar_t* CHANGELOG_VIEWER_CLASS = L"SpeakIntoChangelogViewerClass";
 static HFONT g_changelogFont = nullptr;
 
 static LRESULT CALLBACK ChangelogViewerWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -394,6 +505,13 @@ static LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                     g_dlgSettings->modelSize = model::ModelSize::Medium;
                 else
                     g_dlgSettings->modelSize = model::ModelSize::Small;
+
+                // Read language selection
+                {
+                    int langIdx = (int)SendDlgItemMessageW(hwnd, ID_COMBO_LANGUAGE, CB_GETCURSEL, 0, 0);
+                    if (langIdx >= 0 && langIdx < g_langCount)
+                        g_dlgSettings->language = g_languages[langIdx].code;
+                }
 
                 // Read vocab prompt checkbox
                 g_dlgSettings->vocabPromptEnabled =
@@ -536,7 +654,7 @@ bool showSettingsDialog(HINSTANCE hInstance, Settings& s, const wchar_t* backend
     g_dlgSettings = &s;
     g_dlgResult = false;
 
-    int dlgW = 340, dlgH = 630;
+    int dlgW = 340, dlgH = 650;
     int screenW = GetSystemMetrics(SM_CXSCREEN);
     int screenH = GetSystemMetrics(SM_CYSCREEN);
     int x = (screenW - dlgW) / 2;
@@ -545,7 +663,7 @@ bool showSettingsDialog(HINSTANCE hInstance, Settings& s, const wchar_t* backend
     g_dlgHwnd = CreateWindowExW(
         WS_EX_TOPMOST,
         SETTINGS_CLASS,
-        L"Wisper Agent Settings",
+        L"SpeakInto Settings",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
         x, y, dlgW, dlgH,
         nullptr, nullptr, hInstance, nullptr
@@ -592,7 +710,7 @@ bool showSettingsDialog(HINSTANCE hInstance, Settings& s, const wchar_t* backend
     // --- Model size group ---
     HWND hGroup2 = CreateWindowExW(0, L"BUTTON", L"Transcription model:",
         WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-        10, 150, 310, 170,
+        10, 150, 310, 200,
         g_dlgHwnd, nullptr, hInstance, nullptr);
     SendMessageW(hGroup2, WM_SETFONT, (WPARAM)hFont, TRUE);
 
@@ -631,11 +749,31 @@ bool showSettingsDialog(HINSTANCE hInstance, Settings& s, const wchar_t* backend
             SendMessageW(hSmall, BM_SETCHECK, BST_CHECKED, 0); break;
     }
 
+    // Language selector (inside model group)
+    HWND hLangLabel = CreateWindowExW(0, L"STATIC", L"Language:",
+        WS_CHILD | WS_VISIBLE,
+        25, 280, 65, 20,
+        g_dlgHwnd, nullptr, hInstance, nullptr);
+    SendMessageW(hLangLabel, WM_SETFONT, (WPARAM)hFont, TRUE);
+
+    HWND hLangCombo = CreateWindowExW(0, L"COMBOBOX", nullptr,
+        WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_VSCROLL,
+        95, 277, 210, 300,
+        g_dlgHwnd, (HMENU)(INT_PTR)ID_COMBO_LANGUAGE, hInstance, nullptr);
+    SendMessageW(hLangCombo, WM_SETFONT, (WPARAM)hFont, TRUE);
+
+    int selectedLangIdx = 0;
+    for (int i = 0; i < g_langCount; i++) {
+        SendMessageW(hLangCombo, CB_ADDSTRING, 0, (LPARAM)g_languages[i].label);
+        if (s.language == g_languages[i].code) selectedLangIdx = i;
+    }
+    SendMessageW(hLangCombo, CB_SETCURSEL, selectedLangIdx, 0);
+
     // Vocab prompt checkbox (inside model group)
     HWND hVocabCheck = CreateWindowExW(0, L"BUTTON",
         L"Programming vocabulary hint",
         WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        25, 280, 280, 22,
+        25, 310, 280, 22,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_CHECK_VOCAB, hInstance, nullptr);
     SendMessageW(hVocabCheck, WM_SETFONT, (WPARAM)hFont, TRUE);
     if (s.vocabPromptEnabled) {
@@ -647,14 +785,14 @@ bool showSettingsDialog(HINSTANCE hInstance, Settings& s, const wchar_t* backend
 
     HWND hGroup3 = CreateWindowExW(0, L"BUTTON", L"AI Text Processing:",
         WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-        10, 330, 310, 80,
+        10, 360, 310, 80,
         g_dlgHwnd, nullptr, hInstance, nullptr);
     SendMessageW(hGroup3, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     g_hProcCheck = CreateWindowExW(0, L"BUTTON",
         L"Enable (~1GB download)",
         WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        25, 352, 170, 22,
+        25, 382, 170, 22,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_CHECK_PROCESSOR, hInstance, nullptr);
     SendMessageW(g_hProcCheck, WM_SETFONT, (WPARAM)hFont, TRUE);
     if (s.processorEnabled && procReady) {
@@ -667,76 +805,76 @@ bool showSettingsDialog(HINSTANCE hInstance, Settings& s, const wchar_t* backend
     g_hProcBtn = CreateWindowExW(0, L"BUTTON",
         procReady ? L"Remove" : L"Download",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        220, 350, 90, 26,
+        220, 380, 90, 26,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_BTN_PROCESSOR, hInstance, nullptr);
     SendMessageW(g_hProcBtn, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     HWND hLogBtn = CreateWindowExW(0, L"BUTTON", L"Show Log",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        25, 380, 90, 24,
+        25, 410, 90, 24,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_BTN_SHOW_LOG, hInstance, nullptr);
     SendMessageW(hLogBtn, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // Backend info line
     HWND hInfo = CreateWindowExW(0, L"STATIC", backendInfo,
         WS_CHILD | WS_VISIBLE,
-        10, 420, 310, 18,
+        10, 450, 310, 18,
         g_dlgHwnd, nullptr, hInstance, nullptr);
     SendMessageW(hInfo, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // --- Updates group ---
     HWND hGroup4 = CreateWindowExW(0, L"BUTTON", L"Updates:",
         WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-        10, 442, 310, 90,
+        10, 472, 310, 90,
         g_dlgHwnd, nullptr, hInstance, nullptr);
     SendMessageW(hGroup4, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // Current version label
-    std::wstring verLabel = L"Current version: " WISPER_AGENT_VERSION_W;
+    std::wstring verLabel = L"Current version: " SPEAKINTO_VERSION_W;
     HWND hVerLabel = CreateWindowExW(0, L"STATIC", verLabel.c_str(),
         WS_CHILD | WS_VISIBLE,
-        25, 462, 280, 18,
+        25, 492, 280, 18,
         g_dlgHwnd, nullptr, hInstance, nullptr);
     SendMessageW(hVerLabel, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // Check for Updates button
     g_hUpdateBtn = CreateWindowExW(0, L"BUTTON", L"Check for Updates",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        25, 486, 130, 26,
+        25, 516, 130, 26,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_BTN_CHECK_UPDATE, hInstance, nullptr);
     SendMessageW(g_hUpdateBtn, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // Update status label
     g_hUpdateStatus = CreateWindowExW(0, L"STATIC", L"",
         WS_CHILD | WS_VISIBLE | SS_LEFT,
-        160, 490, 155, 18,
+        160, 520, 155, 18,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_STATIC_UPDATE_STATUS, hInstance, nullptr);
     SendMessageW(g_hUpdateStatus, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // View Changes button (hidden until update found)
     g_hChangelogBtn = CreateWindowExW(0, L"BUTTON", L"View Changes",
         WS_CHILD | BS_PUSHBUTTON,
-        25, 512, 100, 24,
+        25, 542, 100, 24,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_BTN_VIEW_CHANGELOG, hInstance, nullptr);
     SendMessageW(g_hChangelogBtn, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // Download & Install button (hidden until update found)
     g_hInstallBtn = CreateWindowExW(0, L"BUTTON", L"Download && Install",
         WS_CHILD | BS_PUSHBUTTON,
-        180, 512, 130, 24,
+        180, 542, 130, 24,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_BTN_INSTALL_UPDATE, hInstance, nullptr);
     SendMessageW(g_hInstallBtn, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     // OK / Cancel buttons
     HWND hOk = CreateWindowExW(0, L"BUTTON", L"OK",
         WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        150, 520, 80, 28,
+        150, 575, 80, 28,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_OK, hInstance, nullptr);
     SendMessageW(hOk, WM_SETFONT, (WPARAM)hFont, TRUE);
 
     HWND hCancelBtn = CreateWindowExW(0, L"BUTTON", L"Cancel",
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        240, 520, 80, 28,
+        240, 575, 80, 28,
         g_dlgHwnd, (HMENU)(INT_PTR)ID_CANCEL, hInstance, nullptr);
     SendMessageW(hCancelBtn, WM_SETFONT, (WPARAM)hFont, TRUE);
 

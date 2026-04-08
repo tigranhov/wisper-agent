@@ -44,7 +44,7 @@ cmake -B build -G "Visual Studio 17 2022" -A x64
 cmake --build build --config Release
 ```
 
-The built executable will be at `build/Release/wisper-agent.exe`. You'll also need the whisper.cpp binaries — see `scripts/download-whisper.sh` (CPU) or `scripts/download-whisper-cuda.sh` (CUDA).
+The built executable will be at `build/Release/speakinto.exe`. You'll also need the whisper.cpp binaries — see `scripts/download-whisper.sh` (CPU) or `scripts/download-whisper-cuda.sh` (CUDA).
 
 ## Usage
 
@@ -88,7 +88,7 @@ Enable in Settings to run transcribed text through a local LLM that fixes gramma
 
 ## Configuration
 
-Settings are stored in `%APPDATA%\wisper-agent\settings.json`:
+Settings are stored in `%APPDATA%\speakinto\settings.json`:
 
 | Setting | Options | Default |
 |---------|---------|---------|
@@ -97,7 +97,7 @@ Settings are stored in `%APPDATA%\wisper-agent\settings.json`:
 | Microphone | any detected device | system default |
 | Text processor | on / off | off |
 
-Models are downloaded automatically on first use and stored in `%APPDATA%\wisper-agent\models\`.
+Models are downloaded automatically on first use and stored in `%APPDATA%\speakinto\models\`.
 
 ## Requirements
 

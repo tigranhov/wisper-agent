@@ -134,13 +134,13 @@ void create(HINSTANCE hInstance) {
     wc.cbSize = sizeof(wc);
     wc.lpfnWndProc = OverlayWndProc;
     wc.hInstance = hInstance;
-    wc.lpszClassName = L"WisperOverlayClass";
+    wc.lpszClassName = L"SpeakIntoOverlayClass";
     wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
     RegisterClassExW(&wc);
 
     g_hwnd = CreateWindowExW(
         WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
-        L"WisperOverlayClass",
+        L"SpeakIntoOverlayClass",
         L"",
         WS_POPUP,
         0, 0, DEFAULT_WIDTH, HEIGHT,

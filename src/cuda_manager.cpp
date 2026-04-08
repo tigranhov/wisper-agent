@@ -30,7 +30,7 @@ static std::wstring getCudaDir() {
     if (FAILED(SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, 0, appdata))) {
         return L"";
     }
-    return std::wstring(appdata) + L"\\wisper-agent\\cuda";
+    return std::wstring(appdata) + L"\\speakinto\\cuda";
 }
 
 static bool ensureDirectory(const std::wstring& dir) {
@@ -68,7 +68,7 @@ bool isReady() {
 static bool downloadFile(const wchar_t* host, const wchar_t* urlPath,
                           const std::wstring& destPath,
                           std::function<void(int percent)> onProgress) {
-    HINTERNET hSession = WinHttpOpen(L"WisperAgent/1.0",
+    HINTERNET hSession = WinHttpOpen(L"SpeakInto/1.0",
                                       WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
                                       WINHTTP_NO_PROXY_NAME,
                                       WINHTTP_NO_PROXY_BYPASS, 0);

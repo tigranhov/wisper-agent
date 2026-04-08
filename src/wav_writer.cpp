@@ -62,7 +62,7 @@ std::wstring writeTemp(const std::vector<float>& samples, uint32_t srcSampleRate
     wchar_t tempDir[MAX_PATH];
     GetTempPathW(MAX_PATH, tempDir);
     wchar_t tempFile[MAX_PATH];
-    swprintf_s(tempFile, L"%swisper-%llu.wav", tempDir, (unsigned long long)GetTickCount64());
+    swprintf_s(tempFile, L"%sspeakinto-%llu.wav", tempDir, (unsigned long long)GetTickCount64());
 
     // Write WAV file
     std::ofstream out(tempFile, std::ios::binary);

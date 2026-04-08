@@ -37,6 +37,7 @@ static model::ModelSize g_modelSize = model::ModelSize::Small;
 static bool g_downloading = false;
 
 // Transcription options
+static std::string g_language = "en";
 static bool g_vocabPromptEnabled = false;
 
 // Processor
@@ -125,6 +126,7 @@ static void saveCurrentSettings() {
     cfg.modelSize = g_modelSize;
     cfg.processorEnabled = g_processorEnabled;
     cfg.vocabPromptEnabled = g_vocabPromptEnabled;
+    cfg.language = g_language;
     settings::save(cfg);
 }
 
@@ -213,7 +215,8 @@ static void onComboUp() {
     auto modelPath = g_modelPath;
     bool usingGpu = g_usingGpu;
     bool vocabPrompt = g_vocabPromptEnabled;
-    std::thread([result = std::move(result), hwnd, whisperExe, whisperCpu, modelPath, usingGpu, vocabPrompt]() {
+    auto lang = g_language;
+    std::thread([result = std::move(result), hwnd, whisperExe, whisperCpu, modelPath, usingGpu, vocabPrompt, lang]() {
         transcriber::resetCancelFlag();
 
         auto wavPath = wav::writeTemp(result.samples, result.sampleRate, result.channels);
@@ -225,10 +228,10 @@ static void onComboUp() {
 
         log("WAV written: %ls", wavPath.c_str());
 
-        auto txResult = transcriber::transcribe(wavPath, whisperExe, modelPath, vocabPrompt);
+        auto txResult = transcriber::transcribe(wavPath, whisperExe, modelPath, lang, vocabPrompt);
         if (!txResult.processOk && usingGpu) {
             log("GPU transcription failed, retrying with CPU");
-            txResult = transcriber::transcribe(wavPath, whisperCpu, modelPath, vocabPrompt);
+            txResult = transcriber::transcribe(wavPath, whisperCpu, modelPath, lang, vocabPrompt);
             if (txResult.processOk) {
                 PostMessage(hwnd, WM_GPU_FALLBACK, 0, 0);
             }
@@ -258,11 +261,11 @@ static void onComboUp() {
             }
         }
 
-        // Write comparison log to %APPDATA%\wisper-agent\transcription.log
+        // Write comparison log to %APPDATA%\speakinto\transcription.log
         {
             wchar_t appdata[MAX_PATH];
             if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, 0, appdata))) {
-                std::wstring logPath = std::wstring(appdata) + L"\\wisper-agent\\transcription.log";
+                std::wstring logPath = std::wstring(appdata) + L"\\speakinto\\transcription.log";
                 FILE* f = _wfopen(logPath.c_str(), L"a");
                 if (f) {
                     SYSTEMTIME st;
@@ -512,6 +515,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                     }
 
                     g_vocabPromptEnabled = cfg.vocabPromptEnabled;
+                    g_language = cfg.language;
 
                     // Handle processor toggle — deps already managed via button
                     if (cfg.processorEnabled != g_processorEnabled) {
@@ -543,7 +547,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
     // Single instance check
-    HANDLE mutex = CreateMutexW(nullptr, TRUE, L"WisperAgentMutex");
+    HANDLE mutex = CreateMutexW(nullptr, TRUE, L"SpeakIntoMutex");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
         return 0;
     }
@@ -557,11 +561,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
     wc.cbSize = sizeof(wc);
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
-    wc.lpszClassName = L"WisperAgentClass";
+    wc.lpszClassName = L"SpeakIntoClass";
     RegisterClassExW(&wc);
 
     // Create hidden message-only window
-    g_hwnd = CreateWindowExW(0, L"WisperAgentClass", L"Wisper Agent",
+    g_hwnd = CreateWindowExW(0, L"SpeakIntoClass", L"SpeakInto",
                               0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, hInstance, nullptr);
 
     findWhisperPaths();
@@ -575,6 +579,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
     g_modelPath = model::getModelPath(g_modelSize);
     g_processorEnabled = cfg.processorEnabled;
     g_vocabPromptEnabled = cfg.vocabPromptEnabled;
+    g_language = cfg.language;
 
     tray::create(g_hwnd);
     overlay::create(hInstance);
@@ -625,7 +630,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
         log("AI processor started");
     }
 
-    log("Wisper Agent is running. Hold Ctrl+` to record.");
+    log("SpeakInto is running. Hold Ctrl+` to record.");
 
     // Message loop
     MSG msg;

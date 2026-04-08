@@ -14,6 +14,7 @@ struct Settings {
     model::ModelSize modelSize = model::ModelSize::Small;
     bool processorEnabled = false;
     bool vocabPromptEnabled = false;
+    std::string language = "en";  // whisper language code, or "auto"
 };
 
 // Callbacks for processor dependency management (provided by main.cpp)
